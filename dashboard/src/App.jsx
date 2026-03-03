@@ -7,6 +7,7 @@ import Pipeline from './views/Pipeline.jsx'
 import Calendar from './views/Calendar.jsx'
 import Episodes from './views/Episodes.jsx'
 import Stats from './views/Stats.jsx'
+import Publish from './views/Publish.jsx'
 
 // ── Supabase config
 const SB_URL         = import.meta.env.VITE_SUPABASE_URL
@@ -91,6 +92,7 @@ const VIEWS = [
   { id: 'calendar', label: 'Calendar', Icon: CalendarIcon },
   { id: 'episodes', label: 'Episodes', Icon: EpisodesIcon },
   { id: 'stats',    label: 'Stats',    Icon: StatsIcon    },
+  { id: 'publish',  label: 'Publish',  Icon: PublishIcon  },
 ]
 
 // ── Supabase write helpers (service role bypasses RLS)
@@ -364,6 +366,7 @@ export default function App() {
               {view === 'calendar' && <Calendar data={data} />}
               {view === 'episodes' && <Episodes data={data} onUpdate={supabaseUpdate} onInsert={supabaseInsert} refresh={refresh} isLive={isLive} />}
               {view === 'stats'    && <Stats    data={data} perf={perf} />}
+              {view === 'publish'  && <Publish  data={data} isLive={isLive} onUpdate={supabaseUpdate} />}
             </div>
           </div>
         </div>
@@ -454,6 +457,14 @@ function StatsIcon({ size, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
       <path d="M3 14l4-5 4 3 4-7 3 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+function PublishIcon({ size, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <path d="M10 13V4M10 4L7 7M10 4l3 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M3 13v3a1 1 0 001 1h12a1 1 0 001-1v-3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
