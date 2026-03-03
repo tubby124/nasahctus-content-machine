@@ -1,0 +1,73 @@
+{
+  "last_updated": "2026-03-02",
+  "summary": {
+    "total_posts": 0,
+    "total_plays": 0,
+    "total_likes": 0,
+    "total_saves": 0,
+    "avg_plays_per_post": 0,
+    "best_performing_ever": {
+      "id": null,
+      "title": "Aspen Ridge listing tour (pre-system)",
+      "plays": 821,
+      "likes": 47,
+      "platform": "instagram"
+    },
+    "posting_streak_days": 0,
+    "account_baselines": {
+      "instagram_followers": null,
+      "tiktok_followers": null,
+      "youtube_subscribers": null,
+      "note": "Log these before first post"
+    }
+  },
+  "milestones": [
+    { "label": "First post live", "reached": false, "date": null },
+    { "label": "First post 100+ plays in 24h", "reached": false, "date": null },
+    { "label": "First 500 Instagram followers", "reached": false, "date": null },
+    { "label": "First DM from content", "reached": false, "date": null },
+    { "label": "First lead from content", "reached": false, "date": null },
+    { "label": "5 posts live", "reached": false, "date": null },
+    { "label": "10 posts live", "reached": false, "date": null },
+    { "label": "1 cluster complete", "reached": false, "date": null },
+    { "label": "First 1000 plays on a single video", "reached": false, "date": null }
+  ],
+  "competitor_baseline": {
+    "updated": "2026-03-02",
+    "accounts": [
+      {
+        "handle": "@nasahctus",
+        "platform": "instagram",
+        "followers": null,
+        "avg_plays": null,
+        "top_post_plays": 821,
+        "note": "Log followers before first post"
+      },
+      {
+        "handle": "@tylerhassman",
+        "platform": "instagram",
+        "followers": 18700,
+        "avg_plays": null,
+        "top_post_plays": null,
+        "note": "APIFY_FINDINGS.md Feb 2026 — refresh April 2026"
+      },
+      {
+        "handle": "@igorryltsev",
+        "platform": "instagram",
+        "followers": 5200,
+        "avg_plays": null,
+        "top_post_plays": null,
+        "note": "APIFY_FINDINGS.md Feb 2026"
+      },
+      {
+        "handle": "@justinhavre",
+        "platform": "instagram",
+        "followers": null,
+        "avg_plays": null,
+        "top_post_plays": null,
+        "note": "Pending scrape"
+      }
+    ]
+  },
+  "posts": []
+}

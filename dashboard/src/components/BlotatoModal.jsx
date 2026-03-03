@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { C } from '../App.jsx'
+import { C } from '../theme.js'
 import StatusBadge from './StatusBadge.jsx'
 
 const PLATFORMS = [

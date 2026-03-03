@@ -1,20 +1,19 @@
 import { useState } from 'react'
-import { C, statusColor, pillarColor } from '../App.jsx'
+import { C, statusColor } from '../theme.js'
 import StatusBadge from '../components/StatusBadge.jsx'
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const DAY_NAMES  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const POSTING_DAYS = [1, 3, 5] // Mon, Wed, Fri
 
 export default function Calendar({ data }) {
   const eps = data.episodes || []
   const [weekOffset, setWeekOffset] = useState(0)
 
-  // Get the week starting from most recent Monday
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const weekStart = new Date(today)
-  weekStart.setDate(today.getDate() + daysToMonday + weekOffset * 7)
+  const today       = new Date()
+  const dayOfWeek   = today.getDay()
+  const daysToMon   = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const weekStart   = new Date(today)
+  weekStart.setDate(today.getDate() + daysToMon + weekOffset * 7)
   weekStart.setHours(0, 0, 0, 0)
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -23,32 +22,24 @@ export default function Calendar({ data }) {
     return d
   })
 
-  // Map posted episodes to dates
   const postedByDate = {}
   eps.filter(e => e.posted_date).forEach(e => {
-    const key = e.posted_date
-    if (!postedByDate[key]) postedByDate[key] = []
-    postedByDate[key].push(e)
+    if (!postedByDate[e.posted_date]) postedByDate[e.posted_date] = []
+    postedByDate[e.posted_date].push(e)
   })
 
-  const isToday = (d) => {
-    const t = new Date()
-    return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear()
-  }
-
-  const isPostingDay = (d) => POSTING_DAYS.includes(d.getDay())
-  const isPast = (d) => d < today && !isToday(d)
-
-  const dateKey = (d) => d.toISOString().slice(0, 10)
+  const isToday   = d => d.toDateString() === (new Date()).toDateString()
+  const isPast    = d => d < today && !isToday(d)
+  const isPostDay = d => POSTING_DAYS.includes(d.getDay())
+  const dateKey   = d => d.toISOString().slice(0, 10)
 
   const readyEps = eps.filter(e => e.status === 'EDITED')
 
-  // Assign ready episodes to upcoming posting slots
-  const upcomingSlots = []
-  let readyIdx = 0
+  const upcoming = {}
+  let idx = 0
   for (const day of days) {
-    if (isPostingDay(day) && !isPast(day) && readyIdx < readyEps.length) {
-      upcomingSlots.push({ date: dateKey(day), ep: readyEps[readyIdx++] })
+    if (isPostDay(day) && !isPast(day) && idx < readyEps.length) {
+      upcoming[dateKey(day)] = readyEps[idx++]
     }
   }
 
@@ -56,119 +47,107 @@ export default function Calendar({ data }) {
     if (weekOffset === 0) return 'This Week'
     if (weekOffset === 1) return 'Next Week'
     if (weekOffset === -1) return 'Last Week'
-    const start = days[0].toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-    const end = days[6].toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-    return `${start} – ${end}`
+    const s = days[0].toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+    const e = days[6].toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+    return `${s} – ${e}`
   }
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ padding: '22px 20px 40px', maxWidth: 780, margin: '0 auto' }}>
+
       {/* Week nav */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <button onClick={() => setWeekOffset(w => w - 1)} style={navBtn}>← Prev</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+        <NavBtn onClick={() => setWeekOffset(w => w - 1)}>← Prev</NavBtn>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{weekLabel()}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.text, letterSpacing: '-0.3px', marginBottom: 3 }}>
+            {weekLabel()}
+          </div>
           <div style={{ fontSize: 11, color: C.textDim }}>
             {days[0].toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}
           </div>
         </div>
-        <button onClick={() => setWeekOffset(w => w + 1)} style={navBtn}>Next →</button>
+        <NavBtn onClick={() => setWeekOffset(w => w + 1)}>Next →</NavBtn>
       </div>
 
-      {/* Posting schedule legend */}
-      <div style={{
-        display: 'flex', gap: 12, marginBottom: 20,
-        padding: '10px 14px', background: C.surface, borderRadius: 10,
-        border: `1px solid ${C.border}`, flexWrap: 'wrap',
-      }}>
-        <div style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>Posting schedule:</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+      {/* Schedule info */}
+      <div className="glass" style={{ borderRadius: 12, padding: '12px 16px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: C.textDim, fontWeight: 600 }}>Schedule:</span>
+        <div style={{ display: 'flex', gap: 7 }}>
           {['Mon', 'Wed', 'Fri'].map(d => (
             <span key={d} style={{
               fontSize: 10, color: C.brand, background: C.brandDim,
-              padding: '2px 8px', borderRadius: 6, fontWeight: 600,
-            }}>{d} 9AM MST</span>
+              border: '1px solid rgba(124,109,255,0.25)',
+              padding: '3px 9px', borderRadius: 6, fontWeight: 600,
+            }}>{d} 9AM</span>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: C.textDim, marginLeft: 'auto' }}>
-          15-min stagger IG → TikTok
-        </div>
+        <span style={{ fontSize: 10, color: C.textDim, marginLeft: 'auto' }}>15-min stagger · IG → TikTok</span>
       </div>
 
       {/* Day grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {days.map((day, i) => {
-          const key = dateKey(day)
-          const posted = postedByDate[key] || []
-          const upcoming = upcomingSlots.find(s => s.date === key)
-          const isActive = isToday(day)
-          const posting = isPostingDay(day)
-          const past = isPast(day)
+          const key     = dateKey(day)
+          const posted  = postedByDate[key] || []
+          const queued  = upcoming[key]
+          const active  = isToday(day)
+          const postDay = isPostDay(day)
+          const past    = isPast(day)
 
           return (
             <div key={i} style={{
-              background: isActive ? C.surface2 : C.surface,
-              border: `1px solid ${isActive ? C.brand : C.border}`,
-              borderRadius: 10, padding: '14px',
-              opacity: past && !posted.length ? 0.5 : 1,
-              position: 'relative',
+              background: active ? 'rgba(124,109,255,0.08)' : past && !posted.length ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.025)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: `1px solid ${active ? 'rgba(124,109,255,0.3)' : C.border}`,
+              borderRadius: 12, padding: '14px 16px',
+              opacity: past && !posted.length && !postDay ? 0.4 : 1,
+              position: 'relative', overflow: 'hidden',
+              boxShadow: active ? '0 0 0 1px rgba(124,109,255,0.1), 0 4px 20px rgba(124,109,255,0.08)' : C.shadowSm,
             }}>
-              {/* Posting day indicator */}
-              {posting && (
+              {postDay && (
                 <div style={{
-                  position: 'absolute', top: 0, right: 0,
-                  width: 0, height: 0,
-                  borderStyle: 'solid',
-                  borderWidth: '0 18px 18px 0',
-                  borderColor: `transparent ${C.brand} transparent transparent`,
-                  borderRadius: '0 10px 0 0',
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                  background: `linear-gradient(90deg, rgba(124,109,255,${active ? 0.8 : 0.4}), transparent)`,
                 }} />
               )}
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                 {/* Date */}
-                <div style={{ minWidth: 44, textAlign: 'center' }}>
+                <div style={{ minWidth: 46, textAlign: 'center', flexShrink: 0 }}>
                   <div style={{
-                    fontSize: 10, fontWeight: 600,
-                    color: isActive ? C.brand : posting ? C.text : C.textDim,
-                    letterSpacing: '0.5px', marginBottom: 2,
-                  }}>{DAYS[day.getDay()]}</div>
+                    fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+                    color: active ? C.brand : postDay ? C.textSub : C.textDim,
+                    marginBottom: 3,
+                  }}>{DAY_NAMES[day.getDay()]}</div>
                   <div style={{
-                    fontSize: 22, fontWeight: 800, lineHeight: 1,
-                    color: isActive ? C.brand : C.text,
+                    fontSize: 24, fontWeight: 800, lineHeight: 1,
                     fontFamily: "'JetBrains Mono', monospace",
+                    color: active ? C.brand : C.text,
+                    textShadow: active ? `0 0 16px ${C.brand}50` : 'none',
                   }}>{day.getDate()}</div>
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1 }}>
-                  {posted.map(ep => (
-                    <PostedSlot key={ep.id} ep={ep} />
-                  ))}
-
-                  {upcoming && !posted.length && (
-                    <ScheduledSlot ep={upcoming.ep} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {posted.map(ep => <PostedSlot key={ep.id} ep={ep} />)}
+                  {queued && !posted.length && <QueuedSlot ep={queued} />}
+                  {!posted.length && !queued && postDay && !past && <EmptySlot />}
+                  {!posted.length && !queued && postDay && past && (
+                    <div style={{ fontSize: 11, color: C.neg, paddingTop: 2 }}>✕ Missed slot</div>
                   )}
-
-                  {!posted.length && !upcoming && posting && !past && (
-                    <EmptySlot />
-                  )}
-
-                  {!posted.length && !upcoming && !posting && (
-                    <div style={{ fontSize: 11, color: C.textFaint, paddingTop: 4 }}>Rest day</div>
-                  )}
-
-                  {past && !posted.length && posting && (
-                    <div style={{ fontSize: 11, color: C.neg, paddingTop: 4 }}>Missed posting slot</div>
+                  {!postDay && (
+                    <div style={{ fontSize: 11, color: C.textFaint, paddingTop: 2 }}>Rest day</div>
                   )}
                 </div>
 
-                {/* Today badge */}
-                {isActive && (
+                {active && (
                   <span style={{
                     fontSize: 9, color: C.brand, background: C.brandDim,
-                    padding: '2px 8px', borderRadius: 10, fontWeight: 700,
-                    border: `1px solid ${C.brand}40`,
+                    border: '1px solid rgba(124,109,255,0.3)',
+                    padding: '3px 9px', borderRadius: 10, fontWeight: 700,
+                    flexShrink: 0, letterSpacing: '0.5px',
+                    boxShadow: '0 0 8px rgba(124,109,255,0.2)',
                   }}>TODAY</span>
                 )}
               </div>
@@ -177,27 +156,35 @@ export default function Calendar({ data }) {
         })}
       </div>
 
-      {/* Upcoming queue */}
+      {/* Queue */}
       {readyEps.length > 0 && (
-        <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: '0.8px', marginBottom: 12 }}>
-            POSTING QUEUE ({readyEps.length} ready)
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <div style={{ width: 3, height: 16, borderRadius: 2, background: C.edited, boxShadow: `0 0 6px ${C.edited}` }} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+              Posting Queue
+            </div>
+            <div style={{
+              fontSize: 10, color: C.edited, background: C.editedDim,
+              border: '1px solid rgba(59,158,255,0.22)',
+              padding: '1px 8px', borderRadius: 10, fontWeight: 600,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>{readyEps.length} ready</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {readyEps.map((ep, i) => (
-              <div key={ep.id} style={{
-                background: C.surface, border: `1px solid ${C.border}`,
-                borderRadius: 8, padding: '10px 14px',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}>
+              <div key={ep.id} className="glass" style={{ borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  background: C.brandDim, border: `1px solid ${C.brand}`,
+                  width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, rgba(124,109,255,0.3), rgba(124,109,255,0.08))',
+                  border: '1px solid rgba(124,109,255,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: C.brand, flexShrink: 0,
+                  fontSize: 11, fontWeight: 800, color: C.brand,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  boxShadow: '0 0 10px rgba(124,109,255,0.15)',
                 }}>{i + 1}</div>
-                <div>
-                  <div style={{ fontSize: 11, color: C.textDim, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ep.title}</div>
                 </div>
                 <StatusBadge status={ep.status} />
@@ -213,33 +200,31 @@ export default function Calendar({ data }) {
 function PostedSlot({ ep }) {
   return (
     <div style={{
-      background: `${C.posted}12`, border: `1px solid ${C.posted}30`,
-      borderRadius: 8, padding: '8px 12px', marginBottom: 4,
-      display: 'flex', alignItems: 'center', gap: 8,
+      background: 'rgba(16,217,142,0.06)', border: '1px solid rgba(16,217,142,0.18)',
+      borderRadius: 9, padding: '9px 13px', marginBottom: 6,
+      display: 'flex', alignItems: 'center', gap: 9,
     }}>
       <span style={{ fontSize: 14 }}>✅</span>
-      <div>
-        <div style={{ fontSize: 11, color: C.textDim, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
         <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ep.title}</div>
-        {ep.plays != null && (
-          <div style={{ fontSize: 10, color: C.pos, marginTop: 2 }}>{ep.plays.toLocaleString()} plays</div>
-        )}
+        {ep.plays != null && <div style={{ fontSize: 10, color: C.pos, marginTop: 2 }}>{ep.plays.toLocaleString()} plays</div>}
       </div>
     </div>
   )
 }
 
-function ScheduledSlot({ ep }) {
+function QueuedSlot({ ep }) {
   return (
     <div style={{
-      background: C.editedDim, border: `1px dashed ${C.edited}50`,
-      borderRadius: 8, padding: '8px 12px',
-      display: 'flex', alignItems: 'center', gap: 8,
+      background: C.editedDim, border: '1px dashed rgba(59,158,255,0.35)',
+      borderRadius: 9, padding: '9px 13px',
+      display: 'flex', alignItems: 'center', gap: 9,
     }}>
       <span style={{ fontSize: 14 }}>🎬</span>
-      <div>
-        <div style={{ fontSize: 10, color: C.edited, fontWeight: 600, marginBottom: 2 }}>NEXT UP</div>
-        <div style={{ fontSize: 11, color: C.textDim, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 9, color: C.edited, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>Next Up</div>
+        <div style={{ fontSize: 10, color: C.textDim, marginBottom: 2, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</div>
         <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{ep.title}</div>
       </div>
     </div>
@@ -248,23 +233,29 @@ function ScheduledSlot({ ep }) {
 
 function EmptySlot() {
   return (
-    <div style={{
-      border: `1px dashed ${C.border}`,
-      borderRadius: 8, padding: '10px 12px',
-      display: 'flex', alignItems: 'center', gap: 8,
-    }}>
-      <span style={{ fontSize: 12, color: C.textFaint }}>+</span>
+    <div style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 9, padding: '11px 13px', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 12, opacity: 0.3 }}>+</span>
       <span style={{ fontSize: 11, color: C.textFaint }}>Available posting slot</span>
     </div>
   )
 }
 
-const navBtn = {
-  background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: 8, padding: '6px 14px',
-  color: C.textDim, fontSize: 12, cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
+function NavBtn({ onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: `1px solid rgba(255,255,255,0.08)`,
+        borderRadius: 9, padding: '7px 16px',
+        color: C.textSub, fontSize: 12, cursor: 'pointer',
+        fontFamily: "'Inter', sans-serif", fontWeight: 500,
+        transition: 'all 150ms',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = C.text }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = C.textSub }}
+    >{children}</button>
+  )
 }
-
-// Export C.editedDim for use in this file
-const C_editedDim = 'rgba(59,158,255,0.1)'

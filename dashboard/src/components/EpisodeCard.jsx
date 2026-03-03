@@ -1,4 +1,4 @@
-import { C, statusColor, statusDim, pillarColor, personaColor, personaLabel } from '../App.jsx'
+import { C, statusColor, statusDim, pillarColor, personaColor, personaLabel } from '../theme.js'
 import StatusBadge from './StatusBadge.jsx'
 
 export default function EpisodeCard({ ep, onClick, compact = false }) {

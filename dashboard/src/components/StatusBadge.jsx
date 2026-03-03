@@ -1,21 +1,40 @@
-import { C, statusColor, statusDim } from '../App.jsx'
+import { C, statusColor, statusDim } from '../theme.js'
+
+const STATUS_ICONS = {
+  IDEA:     '◦',
+  SCRIPTED: '✍',
+  FILMED:   '⬡',
+  EDITED:   '◈',
+  POSTED:   '✓',
+}
 
 export default function StatusBadge({ status, size = 'sm' }) {
   const sc = statusColor(status)
   const sd = statusDim(status)
-  const pad = size === 'sm' ? '2px 7px' : '4px 10px'
-  const fs = size === 'sm' ? 10 : 11
+  const isLg = size === 'lg' || size === 'md'
 
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: pad, borderRadius: 20,
-      background: sd, border: `1px solid ${sc}22`,
-      color: sc, fontSize: fs, fontWeight: 600, letterSpacing: '0.5px',
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: isLg ? '4px 10px' : '2px 7px',
+      borderRadius: 20,
+      background: sd,
+      border: `1px solid ${sc}28`,
+      color: sc,
+      fontSize: isLg ? 11 : 10,
+      fontWeight: 600,
+      letterSpacing: '0.4px',
       fontFamily: "'JetBrains Mono', monospace",
       whiteSpace: 'nowrap',
+      boxShadow: status === 'POSTED' || status === 'EDITED' ? `0 0 8px ${sc}22` : 'none',
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc, flexShrink: 0 }} />
+      <span style={{
+        width: isLg ? 5 : 4, height: isLg ? 5 : 4,
+        borderRadius: '50%',
+        background: sc,
+        flexShrink: 0,
+        boxShadow: (status === 'POSTED' || status === 'EDITED') ? `0 0 4px ${sc}` : 'none',
+      }} />
       {status}
     </span>
   )
