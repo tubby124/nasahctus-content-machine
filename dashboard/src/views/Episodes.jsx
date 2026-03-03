@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { C, statusColor, statusDim, pillarColor, personaLabel, personaColor, fmtNum } from '../theme.js'
 import StatusBadge from '../components/StatusBadge.jsx'
 import BlotatoModal from '../components/BlotatoModal.jsx'
@@ -7,7 +7,13 @@ const STATUSES        = ['', 'IDEA', 'SCRIPTED', 'FILMED', 'EDITED', 'POSTED']
 const STATUS_PIPELINE = ['IDEA', 'SCRIPTED', 'FILMED', 'EDITED', 'POSTED']
 const STATUS_LABELS   = { IDEA: '💡 Idea', SCRIPTED: '✍️ Scripted', FILMED: '🎬 Filmed', EDITED: '✂️ Edited', POSTED: '✅ Posted' }
 
-export default function Episodes({ data, onUpdate, onInsert, refresh, isLive }) {
+const PILLAR_NAMES = [
+  '', 'Neighbourhood Breakdown', 'Then vs Now Price History', 'Migration & Cost of Living',
+  'Investment & Deal Analysis', 'Monthly Market Pulse', 'Real Deal Story',
+  'Personal Journey', 'News & Current Events',
+]
+
+export default function Episodes({ data, onUpdate, onInsert, refresh, isLive, setView, openCreate, initialCluster, clearCluster }) {
   const eps      = data.episodes || []
   const clusters = data.clusters || []
 
@@ -17,6 +23,15 @@ export default function Episodes({ data, onUpdate, onInsert, refresh, isLive }) 
   const [selected,      setSelected]      = useState(null)
   const [scheduleEp,    setScheduleEp]    = useState(null)
   const [showAddModal,  setShowAddModal]  = useState(false)
+  const [viewMode,      setViewMode]      = useState('list')  // 'list' | 'pillars'
+
+  // Pre-filter by cluster when navigating from Home
+  useEffect(() => {
+    if (initialCluster) {
+      setFilterCluster(initialCluster)
+      if (clearCluster) clearCluster()
+    }
+  }, [initialCluster])
 
   const filtered = eps.filter(ep => {
     const q = search.toLowerCase()
@@ -90,16 +105,29 @@ export default function Episodes({ data, onUpdate, onInsert, refresh, isLive }) 
             />
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <GlassSelect
-              value={filterStatus}
-              onChange={setFilterStatus}
-              options={STATUSES.map(s => ({ value: s, label: s || 'All Status' }))}
-            />
-            <GlassSelect
-              value={filterCluster}
-              onChange={setFilterCluster}
-              options={[{ value: 'all', label: 'All Clusters' }, ...clusters.map(c => ({ value: c.id, label: c.name }))]}
-            />
+            {/* View mode toggle */}
+            <div style={{ display: 'flex', border: `1px solid ${C.border}`, borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
+              {[['list', '≡'], ['pillars', '⬡']].map(([mode, icon]) => (
+                <button key={mode} onClick={() => setViewMode(mode)} style={{
+                  padding: '5px 10px', border: 'none', cursor: 'pointer',
+                  background: viewMode === mode ? 'rgba(124,109,255,0.2)' : 'transparent',
+                  color: viewMode === mode ? C.brand : C.textDim,
+                  fontSize: 13, transition: 'all 150ms',
+                }}>{icon}</button>
+              ))}
+            </div>
+            {viewMode === 'list' && <>
+              <GlassSelect
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={STATUSES.map(s => ({ value: s, label: s || 'All Status' }))}
+              />
+              <GlassSelect
+                value={filterCluster}
+                onChange={setFilterCluster}
+                options={[{ value: 'all', label: 'All Clusters' }, ...clusters.map(c => ({ value: c.id, label: c.name }))]}
+              />
+            </>}
             <span style={{
               fontSize: 11, color: C.textDim, marginLeft: 'auto',
               fontFamily: "'JetBrains Mono', monospace",
@@ -107,26 +135,46 @@ export default function Episodes({ data, onUpdate, onInsert, refresh, isLive }) 
               border: `1px solid ${C.border}`,
               padding: '3px 8px', borderRadius: 6,
             }}>
-              {filtered.length}
+              {viewMode === 'pillars' ? eps.length : filtered.length}
             </span>
           </div>
         </div>
 
-        {/* Episode list */}
+        {/* Episode list / pillar view */}
         <div style={{ flex: 1, overflow: 'auto' }}>
-          {filtered.map(ep => (
-            <EpisodeRow
-              key={ep.id}
-              ep={ep}
-              selected={selected === ep.id}
-              onClick={() => setSelected(selected === ep.id ? null : ep.id)}
-            />
-          ))}
-          {filtered.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: C.textDim, fontSize: 13 }}>
-              <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>◌</div>
-              No episodes match
-            </div>
+          {viewMode === 'list' ? (
+            <>
+              {filtered.map(ep => (
+                <EpisodeRow
+                  key={ep.id}
+                  ep={ep}
+                  selected={selected === ep.id}
+                  onClick={() => setSelected(selected === ep.id ? null : ep.id)}
+                  onGenerate={openCreate && ep.status === 'IDEA' ? () => openCreate(ep) : null}
+                />
+              ))}
+              {filtered.length === 0 && (
+                <div style={{ padding: 40, textAlign: 'center' }}>
+                  <div style={{ fontSize: 26, marginBottom: 12, opacity: 0.3 }}>◌</div>
+                  <div style={{ fontSize: 13, color: C.textDim, marginBottom: 16 }}>
+                    {search || filterStatus || filterCluster !== 'all'
+                      ? 'No episodes match your filters'
+                      : 'No episodes yet'}
+                  </div>
+                  {setView && !search && filterCluster === 'all' && !filterStatus && (
+                    <button onClick={() => setView('create')} style={{
+                      padding: '9px 18px',
+                      background: 'linear-gradient(135deg, #a78bfa, #7c6dff)',
+                      border: 'none', borderRadius: 9, cursor: 'pointer',
+                      color: '#fff', fontSize: 12, fontWeight: 600,
+                      boxShadow: '0 0 20px rgba(124,109,255,0.3)',
+                    }}>✦ Create with AI</button>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <PillarView eps={eps} onSelect={setSelected} onGenerate={openCreate} search={search} />
           )}
         </div>
       </div>
@@ -187,47 +235,100 @@ export default function Episodes({ data, onUpdate, onInsert, refresh, isLive }) 
   )
 }
 
-function EpisodeRow({ ep, selected, onClick }) {
-  const sc = statusColor(ep.status)
+function EpisodeRow({ ep, selected, onClick, onGenerate }) {
   const pc = pillarColor(ep.pillar)
   const [hovered, setHovered] = useState(false)
+  const scriptPreview = ep.script
+    ? ep.script.replace(/##.*\n?/g, '').replace(/\n+/g, ' ').trim().slice(0, 68)
+    : null
 
   return (
     <div
       onClick={onClick}
       style={{
-        padding: '12px 16px',
+        padding: '11px 14px',
         borderBottom: `1px solid ${C.border}`,
         background: selected
           ? 'rgba(124,109,255,0.10)'
-          : hovered ? 'rgba(255,255,255,0.03)' : 'transparent',
+          : hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
         cursor: 'pointer',
-        display: 'flex', alignItems: 'flex-start', gap: 11,
+        display: 'flex', alignItems: 'flex-start', gap: 10,
         position: 'relative',
-        transition: 'background 150ms',
+        transition: 'background 120ms',
+        userSelect: 'none',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {selected && (
-        <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
-          background: C.brand, boxShadow: `0 0 8px ${C.brand}`,
-        }} />
+      {/* Generate button — only on IDEA, only on hover */}
+      {onGenerate && hovered && (
+        <button
+          onClick={e => { e.stopPropagation(); onGenerate() }}
+          style={{
+            position: 'absolute', right: 32, top: '50%', transform: 'translateY(-50%)',
+            padding: '4px 10px', border: `1px solid ${C.brand}40`,
+            borderRadius: 6, background: `${C.brand}18`,
+            color: C.brand, fontSize: 10, fontWeight: 600,
+            cursor: 'pointer', whiteSpace: 'nowrap', zIndex: 2,
+            transition: 'all 150ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = `${C.brand}30` }}
+          onMouseLeave={e => { e.currentTarget.style.background = `${C.brand}18` }}
+        >✦ Generate Script</button>
       )}
+      {/* Left accent bar */}
       <div style={{
-        width: 7, height: 7, borderRadius: '50%',
-        background: pc, marginTop: 5, flexShrink: 0,
-        boxShadow: selected ? `0 0 5px ${pc}` : 'none',
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+        background: selected ? C.brand : hovered ? `${pc}70` : 'transparent',
+        boxShadow: selected ? `0 0 8px ${C.brand}` : 'none',
+        transition: 'all 120ms',
+        borderRadius: '0 2px 2px 0',
       }} />
+
+      {/* Pillar dot */}
+      <div style={{
+        width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+        background: pc, marginTop: 5,
+        boxShadow: (selected || hovered) ? `0 0 6px ${pc}` : 'none',
+        transition: 'box-shadow 120ms',
+      }} />
+
+      {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, color: C.textFaint, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</span>
           <StatusBadge status={ep.status} />
+          {ep.status === 'POSTED' && ep.plays != null && (
+            <span style={{
+              fontSize: 9, color: C.pos, background: `${C.pos}18`,
+              padding: '1px 7px', borderRadius: 20,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>{fmtNum(ep.plays)} plays</span>
+          )}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: selected ? C.text : C.textSub, lineHeight: 1.35, marginBottom: 3 }}>{ep.title}</div>
-        <div style={{ fontSize: 10, color: C.textDim }}>{ep.cluster_name}</div>
+        <div style={{
+          fontSize: 12, fontWeight: 600, lineHeight: 1.35, marginBottom: 3,
+          color: selected ? C.text : C.textSub,
+        }}>{ep.title}</div>
+        {scriptPreview ? (
+          <div style={{
+            fontSize: 10, color: C.textFaint, fontStyle: 'italic',
+            overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+          }}>{scriptPreview}…</div>
+        ) : (
+          <div style={{ fontSize: 10, color: C.textFaint }}>
+            {ep.cluster_name || '—'}
+          </div>
+        )}
       </div>
+
+      {/* Right arrow */}
+      <div style={{
+        color: selected ? C.brand : hovered ? C.textDim : C.textFaint,
+        fontSize: 16, flexShrink: 0, marginTop: 1,
+        transition: 'color 120ms, transform 120ms',
+        transform: (selected || hovered) ? 'translateX(2px)' : 'translateX(0)',
+      }}>›</div>
     </div>
   )
 }
@@ -247,6 +348,7 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
   const [editingScript, setEditingScript] = useState(false)
   const [scriptDraft,   setScriptDraft]   = useState(ep.script || '')
   const [captionDraft,  setCaptionDraft]  = useState(ep.caption || '')
+  const [filmMode,      setFilmMode]      = useState(false)
 
   const handleStatusClick = async (newStatus) => {
     if (newStatus === ep.status) return
@@ -293,6 +395,8 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
   }
 
   return (
+    <>
+    {filmMode && <FilmModeOverlay script={ep.script} onClose={() => setFilmMode(false)} />}
     <div
       className="ep-detail"
       style={{
@@ -636,15 +740,28 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
                     >Cancel</button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => { setScriptDraft(ep.script || ''); setCaptionDraft(ep.caption || ''); setEditingScript(true) }}
-                    style={{
-                      fontSize: 10, color: C.brand, background: C.brandDim,
-                      border: '1px solid rgba(124,109,255,0.25)',
-                      padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >{ep.script ? 'Edit script' : '+ Add script'}</button>
+                  <>
+                    {ep.script && (
+                      <button
+                        onClick={() => setFilmMode(true)}
+                        style={{
+                          fontSize: 10, color: '#f5c518', background: 'rgba(245,197,24,0.1)',
+                          border: '1px solid rgba(245,197,24,0.25)',
+                          padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
+                          fontFamily: "'Inter', sans-serif",
+                        }}
+                      >▶ Film</button>
+                    )}
+                    <button
+                      onClick={() => { setScriptDraft(ep.script || ''); setCaptionDraft(ep.caption || ''); setEditingScript(true) }}
+                      style={{
+                        fontSize: 10, color: C.brand, background: C.brandDim,
+                        border: '1px solid rgba(124,109,255,0.25)',
+                        padding: '3px 9px', borderRadius: 6, cursor: 'pointer',
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    >{ep.script ? 'Edit script' : '+ Add script'}</button>
+                  </>
                 )}
               </div>
             )}
@@ -747,6 +864,7 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
         }
       `}</style>
     </div>
+    </>
   )
 }
 
@@ -919,6 +1037,98 @@ function ScriptViewer({ text }) {
   )
 }
 
+// ── Film Mode
+function parseScriptForFilm(text) {
+  const sections = []
+  let currentSection = null
+  let currentLines = []
+  text.split('\n').forEach(line => {
+    if (line.startsWith('## ') || line.startsWith('# ')) {
+      if (currentLines.length) sections.push({ section: currentSection, lines: [...currentLines] })
+      currentSection = line.replace(/^#+\s/, '').trim()
+      currentLines = []
+    } else if (line.trim()) {
+      currentLines.push(line)
+    }
+  })
+  if (currentLines.length) sections.push({ section: currentSection, lines: currentLines })
+  return sections
+}
+
+function renderFilmLine(line, i) {
+  // Strip leading bullet dash
+  const clean = line.replace(/^[-*]\s+/, '')
+  // Split on **bold** markers
+  const parts = clean.split(/(\*\*[^*]+\*\*)/)
+  return (
+    <div key={i} style={{ marginBottom: 10, lineHeight: 1.85 }}>
+      {parts.map((part, j) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <span key={j} style={{ fontWeight: 700, color: '#fff' }}>{part.slice(2, -2)}</span>
+        }
+        return <span key={j}>{part}</span>
+      })}
+    </div>
+  )
+}
+
+function FilmModeOverlay({ script, onClose }) {
+  const sections = parseScriptForFilm(script)
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: '#070b14',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    }}>
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'fixed', top: 18, right: 18, zIndex: 1001,
+          background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
+          color: '#fff', fontSize: 15, fontWeight: 600,
+          padding: '8px 16px', borderRadius: 30, cursor: 'pointer',
+          fontFamily: "'Inter', sans-serif",
+          backdropFilter: 'blur(8px)',
+        }}
+      >✕ Done</button>
+
+      {/* Script content */}
+      <div style={{
+        maxWidth: 680, margin: '0 auto',
+        padding: '70px 28px 80px',
+      }}>
+        {sections.map((sec, si) => {
+          const sectionKey = (sec.section || '').toLowerCase()
+          const isHook = sectionKey.includes('hook')
+          const isCta = sectionKey.includes('cta')
+          const textColor = isHook ? '#f5c518' : isCta ? '#10d98e' : '#e8e8e8'
+          const fontSize = isHook ? 22 : isCta ? 17 : 20
+
+          return (
+            <div key={si} style={{ marginBottom: isHook ? 36 : 28 }}>
+              {/* Section divider (not shown for hook — jump straight into content) */}
+              {!isHook && si > 0 && (
+                <div style={{
+                  height: 1, background: 'rgba(255,255,255,0.07)',
+                  marginBottom: 24,
+                }} />
+              )}
+              <div style={{
+                fontSize, color: textColor, lineHeight: 1.85,
+                fontFamily: "'Inter', sans-serif", fontWeight: isHook ? 500 : 400,
+              }}>
+                {sec.lines.map((line, li) => renderFilmLine(line, li))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Shared helpers
 function inputStyle() {
   return {
@@ -994,5 +1204,127 @@ function GlassSelect({ value, onChange, options }) {
         <option key={o.value} value={o.value} style={{ background: '#0b0d16' }}>{o.label}</option>
       ))}
     </select>
+  )
+}
+
+// ── Pillar view — groups all episodes by content pillar with Generate actions
+function PillarView({ eps, onSelect, onGenerate, search }) {
+  const q = search.toLowerCase()
+  const filteredEps = q ? eps.filter(e => e.title.toLowerCase().includes(q)) : eps
+
+  return (
+    <div style={{ padding: '12px 14px 40px' }}>
+      {Array.from({ length: 8 }, (_, i) => i + 1).map(p => {
+        const pillarEps = filteredEps.filter(e => e.pillar === p)
+        if (pillarEps.length === 0) return null
+        const pc = pillarColor(p)
+        const posted = pillarEps.filter(e => e.status === 'POSTED').length
+        const ideas  = pillarEps.filter(e => e.status === 'IDEA').length
+
+        return (
+          <div key={p} style={{ marginBottom: 24 }}>
+            {/* Pillar header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              marginBottom: 10, paddingBottom: 8,
+              borderBottom: `1px solid ${pc}30`,
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                background: `${pc}18`, border: `1px solid ${pc}35`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 800, color: pc,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>P{p}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{PILLAR_NAMES[p]}</div>
+                <div style={{ fontSize: 10, color: C.textFaint, marginTop: 1 }}>
+                  {pillarEps.length} episodes · {posted} posted · {ideas} ideas
+                </div>
+              </div>
+              <div style={{
+                fontSize: 11, fontWeight: 700, color: posted === pillarEps.length ? '#10d98e' : C.textDim,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}>
+                {pillarEps.length > 0 ? Math.round((posted / pillarEps.length) * 100) : 0}%
+              </div>
+            </div>
+
+            {/* Episode cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {pillarEps.map(ep => (
+                <PillarEpisodeRow
+                  key={ep.id}
+                  ep={ep}
+                  pillarColor={pc}
+                  onSelect={() => onSelect(ep.id)}
+                  onGenerate={onGenerate && ep.status === 'IDEA' ? () => onGenerate(ep) : null}
+                />
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function PillarEpisodeRow({ ep, pillarColor: pc, onSelect, onGenerate }) {
+  const [hovered, setHovered] = useState(false)
+  const sc = statusColor(ep.status)
+
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '9px 10px', borderRadius: 8,
+        background: hovered ? 'rgba(255,255,255,0.04)' : 'transparent',
+        cursor: 'pointer', transition: 'background 120ms',
+        border: `1px solid ${hovered ? C.border : 'transparent'}`,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onSelect}
+    >
+      {/* Status dot */}
+      <div style={{
+        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+        background: sc,
+        boxShadow: (ep.status === 'POSTED' || ep.status === 'EDITED') ? `0 0 6px ${sc}` : 'none',
+      }} />
+
+      {/* Title */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 12, color: ep.status === 'IDEA' ? C.textDim : C.text,
+          fontWeight: ep.status === 'IDEA' ? 400 : 500,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          lineHeight: 1.3,
+        }}>{ep.title}</div>
+        {ep.cluster_name && (
+          <div style={{ fontSize: 10, color: C.textFaint, marginTop: 2 }}>{ep.cluster_name}</div>
+        )}
+      </div>
+
+      {/* Right side — either generate button or status */}
+      {onGenerate && hovered ? (
+        <button
+          onClick={e => { e.stopPropagation(); onGenerate() }}
+          style={{
+            padding: '4px 10px', border: `1px solid ${C.brand}50`,
+            borderRadius: 6, background: `${C.brand}18`,
+            color: C.brand, fontSize: 10, fontWeight: 600,
+            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+        >✦ Generate</button>
+      ) : (
+        <span style={{
+          fontSize: 9, color: sc, background: `${sc}15`,
+          border: `1px solid ${sc}25`, padding: '2px 7px',
+          borderRadius: 20, fontWeight: 600, letterSpacing: '0.3px',
+          flexShrink: 0, fontFamily: "'JetBrains Mono', monospace",
+        }}>{ep.status}</span>
+      )}
+    </div>
   )
 }
