@@ -11,7 +11,7 @@ const STATUS_META = {
   POSTED:   { label: 'Posted',   icon: '✅', desc: 'Live on socials'  },
 }
 
-export default function Pipeline({ data }) {
+export default function Pipeline({ data, openCreate }) {
   const eps      = data.episodes || []
   const clusters = data.clusters || []
 
@@ -135,7 +135,7 @@ export default function Pipeline({ data }) {
                     borderRadius: 8,
                   }}>Empty</div>
                 )}
-                {col.map(ep => <KanbanCard key={ep.id} ep={ep} />)}
+                {col.map(ep => <KanbanCard key={ep.id} ep={ep} openCreate={openCreate} />)}
               </div>
             </div>
           )
@@ -145,12 +145,13 @@ export default function Pipeline({ data }) {
   )
 }
 
-function KanbanCard({ ep }) {
+function KanbanCard({ ep, openCreate }) {
   const pc = pillarColor(ep.pillar)
   const [hovered, setHovered] = useState(false)
 
   return (
     <div
+      onClick={() => openCreate?.(ep)}
       style={{
         background: hovered ? C.glassMd : C.glass,
         backdropFilter: 'blur(16px)',
@@ -162,7 +163,7 @@ function KanbanCard({ ep }) {
         transform: hovered ? 'translateY(-1px)' : 'none',
         boxShadow: hovered ? `0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px ${pc}20` : C.shadowSm,
         transition: 'all 150ms ease',
-        cursor: 'default',
+        cursor: openCreate ? 'pointer' : 'default',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

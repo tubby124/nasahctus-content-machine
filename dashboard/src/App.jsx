@@ -3,11 +3,13 @@ import { C, timeSince } from './theme.js'
 import episodesSeed from './data/episodes.json'
 import perfSeed from './data/performance.json'
 import Home from './views/Home.jsx'
+import Create from './views/Create.jsx'
 import Pipeline from './views/Pipeline.jsx'
 import Calendar from './views/Calendar.jsx'
 import Episodes from './views/Episodes.jsx'
 import Stats from './views/Stats.jsx'
 import Publish from './views/Publish.jsx'
+import Docs from './views/Docs.jsx'
 
 // ── Supabase config
 const SB_URL         = import.meta.env.VITE_SUPABASE_URL
@@ -88,11 +90,13 @@ const GLOBAL_CSS = `
 
 const VIEWS = [
   { id: 'home',     label: 'Home',     Icon: HomeIcon     },
+  { id: 'create',   label: 'Create',   Icon: CreateIcon   },
+  { id: 'episodes', label: 'Episodes', Icon: EpisodesIcon },
   { id: 'pipeline', label: 'Pipeline', Icon: PipelineIcon },
   { id: 'calendar', label: 'Calendar', Icon: CalendarIcon },
-  { id: 'episodes', label: 'Episodes', Icon: EpisodesIcon },
   { id: 'stats',    label: 'Stats',    Icon: StatsIcon    },
   { id: 'publish',  label: 'Publish',  Icon: PublishIcon  },
+  { id: 'docs',     label: 'Docs',     Icon: DocsIcon     },
 ]
 
 // ── Supabase write helpers (service role bypasses RLS)
@@ -136,6 +140,12 @@ export default function App() {
   const [syncing,  setSyncing]  = useState(false)
   const [syncErr,  setSyncErr]  = useState(null)
   const [isLive,   setIsLive]   = useState(false)
+  const [prefill,  setPrefill]  = useState(null)
+
+  const openCreate = useCallback((ep) => {
+    setPrefill({ episodeId: ep.id, idea: ep.title, clusterId: ep.cluster_id || '', persona: ep.persona || 'ontario-transplant', pillar: ep.pillar || 3 })
+    setView('create')
+  }, [])
 
   const refresh = useCallback(async () => {
     setSyncing(true)
@@ -362,11 +372,13 @@ export default function App() {
           }}>
             <div key={view} className="fade-in">
               {view === 'home'     && <Home     data={data} perf={perf} setView={setView} />}
-              {view === 'pipeline' && <Pipeline data={data} />}
+              {view === 'create'   && <Create   data={data} onInsert={supabaseInsert} onUpdate={supabaseUpdate} setView={setView} isLive={isLive} refresh={refresh} prefill={prefill} clearPrefill={() => setPrefill(null)} />}
+              {view === 'pipeline' && <Pipeline data={data} openCreate={openCreate} />}
               {view === 'calendar' && <Calendar data={data} />}
-              {view === 'episodes' && <Episodes data={data} onUpdate={supabaseUpdate} onInsert={supabaseInsert} refresh={refresh} isLive={isLive} />}
+              {view === 'episodes' && <Episodes data={data} onUpdate={supabaseUpdate} onInsert={supabaseInsert} refresh={refresh} isLive={isLive} openCreate={openCreate} />}
               {view === 'stats'    && <Stats    data={data} perf={perf} />}
               {view === 'publish'  && <Publish  data={data} isLive={isLive} onUpdate={supabaseUpdate} />}
+              {view === 'docs'     && <Docs />}
             </div>
           </div>
         </div>
@@ -465,6 +477,22 @@ function PublishIcon({ size, color }) {
     <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
       <path d="M10 13V4M10 4L7 7M10 4l3 3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M3 13v3a1 1 0 001 1h12a1 1 0 001-1v-3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+}
+function CreateIcon({ size, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="7" stroke={color} strokeWidth="1.5"/>
+      <path d="M10 7v6M7 10h6" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+}
+function DocsIcon({ size, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <rect x="3" y="2" width="14" height="16" rx="2" stroke={color} strokeWidth="1.5"/>
+      <path d="M6 7h8M6 10h8M6 13h5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
