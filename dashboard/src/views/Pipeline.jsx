@@ -18,6 +18,7 @@ export default function Pipeline({ data, openCreate }) {
   const [filterCluster, setFilterCluster] = useState('all')
   const [filterPillar,  setFilterPillar]  = useState('all')
   const [filterPersona, setFilterPersona] = useState('all')
+  const [selectedEp,    setSelectedEp]    = useState(null)
 
   const pillars  = [...new Set(eps.map(e => e.pillar).filter(Boolean))].sort()
   const personas = [...new Set(eps.map(e => e.persona))]
@@ -135,35 +136,51 @@ export default function Pipeline({ data, openCreate }) {
                     borderRadius: 8,
                   }}>Empty</div>
                 )}
-                {col.map(ep => <KanbanCard key={ep.id} ep={ep} openCreate={openCreate} />)}
+                {col.map(ep => (
+                  <KanbanCard
+                    key={ep.id}
+                    ep={ep}
+                    selected={selectedEp?.id === ep.id}
+                    onClick={() => setSelectedEp(selectedEp?.id === ep.id ? null : ep)}
+                  />
+                ))}
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* Detail drawer */}
+      {selectedEp && (
+        <CardDetail
+          ep={selectedEp}
+          onClose={() => setSelectedEp(null)}
+          onGenerate={openCreate}
+        />
+      )}
     </div>
   )
 }
 
-function KanbanCard({ ep, openCreate }) {
+function KanbanCard({ ep, selected, onClick }) {
   const pc = pillarColor(ep.pillar)
   const [hovered, setHovered] = useState(false)
 
   return (
     <div
-      onClick={() => openCreate?.(ep)}
+      onClick={onClick}
       style={{
-        background: hovered ? C.glassMd : C.glass,
+        background: selected ? `${pc}12` : hovered ? C.glassMd : C.glass,
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        border: `1px solid ${hovered ? C.borderBright : C.border}`,
+        border: `1px solid ${selected ? `${pc}50` : hovered ? C.borderBright : C.border}`,
         borderRadius: 9,
         padding: '10px 11px 10px 14px',
         position: 'relative', overflow: 'hidden',
         transform: hovered ? 'translateY(-1px)' : 'none',
         boxShadow: hovered ? `0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px ${pc}20` : C.shadowSm,
         transition: 'all 150ms ease',
-        cursor: openCreate ? 'pointer' : 'default',
+        cursor: 'pointer',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -216,6 +233,137 @@ function KanbanCard({ ep, openCreate }) {
           ⚡ {ep.notes.replace('⚡ ', '')}
         </div>
       )}
+    </div>
+  )
+}
+
+function CardDetail({ ep, onClose, onGenerate }) {
+  const pc = pillarColor(ep.pillar)
+  const [copied, setCopied] = useState(null)
+
+  function copy(text, key) {
+    navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 1500)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, right: 0, bottom: 0,
+      width: 460,
+      background: 'rgba(6,8,18,0.97)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderLeft: `1px solid ${C.border}`,
+      display: 'flex', flexDirection: 'column',
+      zIndex: 300,
+      animation: 'fadein 180ms ease',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '18px 20px',
+        borderBottom: `1px solid ${C.border}`,
+        flexShrink: 0,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${pc}90, transparent)` }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 10, color: C.textDim, fontFamily: "'JetBrains Mono', monospace" }}>{ep.id}</span>
+              <StatusBadge status={ep.status} size="md" />
+              <span style={{ fontSize: 9, color: pc, background: `${pc}14`, border: `1px solid ${pc}22`, padding: '1px 5px', borderRadius: 3, fontWeight: 600 }}>P{ep.pillar}</span>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text, lineHeight: 1.3, letterSpacing: '-0.3px' }}>{ep.title}</div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, cursor: 'pointer', color: C.textDim, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 150ms' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = C.text }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = C.textDim }}
+          >✕</button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '18px 20px 32px' }}>
+
+        {/* Metadata */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+          <MetaBox label="Cluster" value={ep.cluster_name || '—'} />
+          <MetaBox label="Persona" value={personaLabel(ep.persona)} color={personaColor(ep.persona)} />
+        </div>
+
+        {/* IDEA — no script yet */}
+        {ep.status === 'IDEA' && (
+          <button
+            onClick={() => { onClose(); onGenerate?.(ep) }}
+            style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #a78bfa, #7c6dff)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, boxShadow: '0 0 24px rgba(124,109,255,0.3)' }}
+          >✦ Generate Script →</button>
+        )}
+
+        {/* Script */}
+        {ep.script && (
+          <Section label="Script" onCopy={() => copy(ep.script, 'script')} copied={copied === 'script'}>
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{ep.script}</div>
+          </Section>
+        )}
+
+        {/* Caption */}
+        {ep.caption && (
+          <Section label="Caption" onCopy={() => copy(ep.caption, 'caption')} copied={copied === 'caption'}>
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{ep.caption}</div>
+          </Section>
+        )}
+
+        {/* Image Prompt */}
+        <Section label="Image Prompt" onCopy={ep.image_prompt ? () => copy(ep.image_prompt, 'img') : null} copied={copied === 'img'}>
+          <div style={{
+            fontSize: 12, lineHeight: 1.6,
+            fontFamily: "'JetBrains Mono', monospace",
+            color: ep.image_prompt ? C.textSub : C.textFaint,
+            fontStyle: ep.image_prompt ? 'normal' : 'italic',
+            cursor: ep.image_prompt ? 'copy' : 'default',
+          }}
+            onClick={() => ep.image_prompt && copy(ep.image_prompt, 'img')}
+          >{ep.image_prompt || 'No image prompt yet'}</div>
+        </Section>
+
+        {/* Notes */}
+        {ep.notes && (
+          <Section label="Notes">
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.6 }}>{ep.notes}</div>
+          </Section>
+        )}
+
+      </div>
+    </div>
+  )
+}
+
+function Section({ label, children, onCopy, copied }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{label}</div>
+        {onCopy && (
+          <button onClick={onCopy} style={{ fontSize: 10, color: copied ? '#10d98e' : C.textDim, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 150ms' }}>
+            {copied ? '✓ Copied' : '⎘ Copy'}
+          </button>
+        )}
+      </div>
+      <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}`, borderRadius: 9 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function MetaBox({ label, value, color }) {
+  return (
+    <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}`, borderRadius: 9 }}>
+      <div style={{ fontSize: 9, color: C.textFaint, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: color || C.text }}>{value}</div>
     </div>
   )
 }
