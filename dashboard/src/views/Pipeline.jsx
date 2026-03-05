@@ -150,6 +150,20 @@ export default function Pipeline({ data, openCreate }) {
         })}
       </div>
 
+      {/* Backdrop */}
+      {selectedEp && (
+        <div
+          onClick={() => setSelectedEp(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 299,
+            background: 'rgba(3,4,10,0.55)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            animation: 'fadein 180ms ease',
+          }}
+        />
+      )}
+
       {/* Detail drawer */}
       {selectedEp && (
         <CardDetail
@@ -257,7 +271,7 @@ function CardDetail({ ep, onClose, onGenerate }) {
       borderLeft: `1px solid ${C.border}`,
       display: 'flex', flexDirection: 'column',
       zIndex: 300,
-      animation: 'fadein 180ms ease',
+      animation: 'slide-right 220ms cubic-bezier(0.22, 1, 0.36, 1)',
     }}>
       {/* Header */}
       <div style={{

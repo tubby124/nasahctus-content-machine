@@ -30,8 +30,9 @@ const GLOBAL_CSS = `
   @keyframes spin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes fadein  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  @keyframes orb1    { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.08); } }
-  @keyframes orb2    { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,-20px) scale(1.05); } }
+  @keyframes orb1       { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.08); } }
+  @keyframes orb2       { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,-20px) scale(1.05); } }
+  @keyframes slide-right { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
   .glass {
     background: ${C.glass};

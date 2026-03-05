@@ -129,15 +129,6 @@ export default function Home({ data, perf, setView }) {
         </Section>
       )}
 
-      {/* ── Quick nav */}
-      <Section title="Navigate" accent={C.textDim}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          <NavCard label="Pipeline" sub="Kanban by stage" onClick={() => setView('pipeline')} color={C.brand} icon="⬡" />
-          <NavCard label="Episodes" sub={`Browse all ${total} eps`} onClick={() => setView('episodes')} color={C.scripted} icon="≡" />
-          <NavCard label="Calendar" sub="Posting schedule" onClick={() => setView('calendar')} color={C.filmed} icon="◫" />
-          <NavCard label="Stats" sub="Charts & metrics" onClick={() => setView('stats')} color={C.posted} icon="↗" />
-        </div>
-      </Section>
     </div>
   )
 }
