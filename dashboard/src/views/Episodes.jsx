@@ -616,20 +616,21 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
         )}
 
         {/* Image Prompt */}
-        {ep.image_prompt && (
-          <div style={{ marginBottom: 18 }}>
-            <Label>Image Prompt</Label>
-            <div
-              onClick={() => navigator.clipboard.writeText(ep.image_prompt)}
-              title="Click to copy"
-              style={{
-                padding: '12px 14px',
-                background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)',
-                borderRadius: 10, fontSize: 12, color: C.textSub, lineHeight: 1.6,
-                cursor: 'copy', fontFamily: "'JetBrains Mono', monospace",
-              }}>{ep.image_prompt}</div>
-          </div>
-        )}
+        <div style={{ marginBottom: 18 }}>
+          <Label>Image Prompt</Label>
+          <div
+            onClick={() => ep.image_prompt && navigator.clipboard.writeText(ep.image_prompt)}
+            title={ep.image_prompt ? 'Click to copy' : ''}
+            style={{
+              padding: '12px 14px',
+              background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)',
+              borderRadius: 10, fontSize: 12, lineHeight: 1.6,
+              cursor: ep.image_prompt ? 'copy' : 'default',
+              fontFamily: "'JetBrains Mono', monospace",
+              color: ep.image_prompt ? C.textSub : C.textFaint,
+              fontStyle: ep.image_prompt ? 'normal' : 'italic',
+            }}>{ep.image_prompt || 'No image prompt yet — generate one with /content-cluster'}</div>
+        </div>
 
         {/* File */}
         {ep.file && (
