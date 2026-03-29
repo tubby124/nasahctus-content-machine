@@ -632,6 +632,34 @@ function DetailPanel({ ep, clusters, onClose, onSchedule, onUpdate, isLive }) {
             }}>{ep.image_prompt || 'No image prompt yet — generate one with /content-cluster'}</div>
         </div>
 
+        {/* ChatGPT Image Prompts */}
+        {ep.image_prompts && (
+          <div style={{ marginBottom: 18 }}>
+            <Label>ChatGPT Image Prompts</Label>
+            <div style={{ fontSize: 10, color: C.textFaint, marginBottom: 8, fontStyle: 'italic' }}>
+              Click any block to copy it
+            </div>
+            {ep.image_prompts.split(/\n\n(?=GRAPHIC|Part)/).map((prompt, i) => (
+              <div
+                key={i}
+                onClick={() => navigator.clipboard.writeText(prompt)}
+                title="Click to copy"
+                style={{
+                  padding: '10px 14px', marginBottom: 8,
+                  background: 'rgba(201,169,110,0.06)',
+                  border: '1px solid rgba(201,169,110,0.2)',
+                  borderRadius: 8, fontSize: 11, lineHeight: 1.6,
+                  cursor: 'copy', fontFamily: "'JetBrains Mono', monospace",
+                  color: C.textSub, whiteSpace: 'pre-wrap',
+                  transition: 'background 120ms',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(201,169,110,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(201,169,110,0.06)'}
+              >{prompt}</div>
+            ))}
+          </div>
+        )}
+
         {/* File */}
         {ep.file && (
           <div style={{ marginBottom: 18 }}>
